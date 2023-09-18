@@ -1,5 +1,6 @@
 import re
 from os import path
+import xml_generate 
 
 INPUT_FILE  = "/Users/sharathhebburshivakumar/Downloads/purdue/projects/block_diagram_generator/VX_alu_unit.sv"
 OUTPUT_FILE = "/Users/sharathhebburshivakumar/Downloads/purdue/projects/block_diagram_generator/VX_alu_unit.drawio.xml"
@@ -43,7 +44,7 @@ def extract_interface_signals(interface_name, interface_module):
           input_signals.append(interface_signals[signal_name])
         elif line.startswith("output"):
           signal_name = line.split()[1].replace(',', '')
-          input_signals.append(interface_signals[signal_name])
+          output_signals.append(interface_signals[signal_name])
         elif line.startswith(");"):  
           extract_if_module_flag = False
 
@@ -53,45 +54,66 @@ def extract_module_signals(module_file_path):
 
   # Regular expressions to match input and output declarations
   input_pattern = r'\binput\b\s+(wire|reg)?\s*(\[[^\]]+\])?\s*(\w*)'
-  output_pattern = r'\binput\b\s+(wire|reg)?\s*(\[[^\]]+\])?\s*(\w*)'
+  output_pattern = r'\boutput\b\s+(wire|reg)?\s*(\[[^\]]+\])?\s*(\w*)'
   interface_pattern = r'\b(VX_\w+_if)\b.(\w+)'
   module_name_pattern = r'module\s+(\w+)\s+'
 
-  # input_pattern = r'\binput\b\s+(wire|reg)?\s*((?:\[\d+:\d+\])+\s*)?\s*(\w*)' for 2dim mod interface
+  # for 2dim mod interface
+  # input_pattern = r'\binput\b\s+(wire|reg)?\s*((?:\[\d+:\d+\])+\s*)?\s*(\w*)' 
 
+  # Initialize variables to track modport content
+  inside_module = False
+  module_signals_content = ""
+  module_signals = []
+  
   # Open and read the SystemVerilog file
   with open(module_file_path, 'r') as sv_file:
     sv_content = sv_file.read()
+    
+    # Split the content by lines and iterate through each line
+    for line in sv_content.splitlines():
+      line = line.strip()  # Remove leading/trailing spaces
 
-    # Find all input signals and store them in the input_signals list
-    input_matches = re.finditer(input_pattern, sv_content)
-    for match in input_matches:
-        signal_type = match.group(1)
-        signal_length = match.group(2)
-        signal_name = match.group(3)
-        input_signals.append((signal_type, signal_length, signal_name))
+      if line.startswith("module"):
+          inside_module = True
+          module_signals = []
 
-    # Find all output signals and store them in the output_signals list
-    output_matches = re.finditer(output_pattern, sv_content)
-    for match in output_matches:
-        signal_type = match.group(1)
-        signal_length = match.group(2)
-        signal_name = match.group(3)
-        output_signals.append((signal_type, signal_length, signal_name))
+      if inside_module:
+          module_signals.append(line)
 
-    # Find all signals from interface and append them in the list
-    interface_matches = re.finditer(interface_pattern, sv_content)
-    interface_matches = tuple(interface_matches)
-    for match in interface_matches:
-      interface_name = match.group(1)
-      interface_module = match.group(2)
-      extract_interface_signals(interface_name, interface_module)
+      if line.startswith(");"):
+          inside_module = False
+          module_signals_content = "\n".join(module_signals)
 
-    module_name_match = re.search(module_name_pattern, sv_content)
-    if module_name_match:
-        module_name = module_name_match.group(1)
-    else:
-        module_name = "Module name not found"
+  # Find all input signals and store them in the input_signals list
+  input_matches = re.finditer(input_pattern, module_signals_content)
+  for match in input_matches:
+      signal_type = match.group(1)
+      signal_length = match.group(2)
+      signal_name = match.group(3)
+      input_signals.append((signal_type, signal_length, signal_name))
+
+  # Find all output signals and store them in the output_signals list
+  output_matches = re.finditer(output_pattern, module_signals_content)
+  for match in output_matches:
+      signal_type = match.group(1)
+      signal_length = match.group(2)
+      signal_name = match.group(3)
+      output_signals.append((signal_type, signal_length, signal_name))
+
+  # Find all signals from interface and append them in the list
+  interface_matches = re.finditer(interface_pattern, module_signals_content)
+  interface_matches = tuple(interface_matches)
+  for match in interface_matches:
+    interface_name = match.group(1)
+    interface_module = match.group(2)
+    extract_interface_signals(interface_name, interface_module)
+
+  module_name_match = re.search(module_name_pattern, sv_content)
+  if module_name_match:
+      module_name = module_name_match.group(1)
+  else:
+      module_name = "Module name not found"
 
   return (module_name, input_signals, output_signals)
 
@@ -106,6 +128,8 @@ def main():
   print("\nOutput Signals:")
   for signal in output_signals:
       print(signal)
+
+  xml_generate.generate_xml(module_name, input_signals,output_signals, OUTPUT_FILE)
 
 if __name__ == "__main__":
   main()
