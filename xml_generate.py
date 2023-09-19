@@ -1,6 +1,6 @@
 import uuid
 
-uid = lambda: uuid.uuid4().hex[:20] #20 char uid
+uid = lambda: uuid.uuid4().hex[:20] #20 char uniqque id
 
 graph_dim = (1224,1224) #(dx,dy)
 input_cordinates = (160,90)
@@ -69,3 +69,5 @@ def generate_xml(module_name, input_signals, output_signals, output_filename):
 
   with open(output_filename, "w") as f:
     f.write(XML_data)
+
+  return None
