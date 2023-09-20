@@ -16,7 +16,6 @@ def _extract_interface_signals(interface_name, interface_module, interface_dir_p
     
     for line in if_content:
       line = line.strip() 
-      
       if line.startswith("wire") or line.startswith("reg"):
         signal_list = line.split()
         if len(signal_list)==2:
@@ -29,19 +28,31 @@ def _extract_interface_signals(interface_name, interface_module, interface_dir_p
           signal_type = signal_list[0]
 
         interface_signals[signal_name] = (signal_type, signal_length, f"{interface_name}.{signal_name}")
-
+      
+      elif "::" in line:
+        signal_list = line.split()
+        signal_name = signal_list[1].replace(';', '')
+        signal_length = None
+        signal_type = signal_list[0] 
+        interface_signals[signal_name] = (signal_type, signal_length, f"{interface_name}.{signal_name}")
+      
       elif f"modport {interface_module}" in line:
         extract_if_module_flag = True
 
       elif extract_if_module_flag == True:
-        if line.startswith("input"):
+        try:
+          if line.startswith("input"):
+            signal_name = line.split()[1].replace(',', '')
+            input_signals.append(interface_signals[signal_name.strip()])
+          elif line.startswith("output"):
+            signal_name = line.split()[1].replace(',', '')
+            output_signals.append(interface_signals[signal_name.strip()])
+          elif line.startswith(");"):  
+            extract_if_module_flag = False
+        except KeyError:
+          print(signal_name)
           signal_name = line.split()[1].replace(',', '')
-          input_signals.append(interface_signals[signal_name])
-        elif line.startswith("output"):
-          signal_name = line.split()[1].replace(',', '')
-          output_signals.append(interface_signals[signal_name])
-        elif line.startswith(");"):  
-          extract_if_module_flag = False
+          output_signals.append(( None, None, signal_name))
 
   return None
 
