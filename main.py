@@ -1,10 +1,10 @@
 import xml_generate 
 import extract_mod 
+from os import path
 
 INPUT_FILE  = "/Users/sharathhebburshivakumar/Downloads/purdue/projects/block_diagram_generator/VX_alu_unit.sv"
-OUTPUT_FILE = "/Users/sharathhebburshivakumar/Downloads/purdue/projects/block_diagram_generator/VX_alu_unit.drawio.xml"
+OUTPUT_FILE = path.join(path.dirname(INPUT_FILE), "diagrams", path.basename(INPUT_FILE).split(".sv")[0]+".drawio.xml")
 INTERFACE_PATH = "/Users/sharathhebburshivakumar/Downloads/purdue/projects/block_diagram_generator/interfaces/"
-
 
 def main():
   (module_name, input_signals,output_signals) = extract_mod.extract_module_signals(INPUT_FILE, INTERFACE_PATH)
